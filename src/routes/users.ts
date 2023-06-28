@@ -13,11 +13,28 @@ export async function userRoutes(app: FastifyInstance) {
 		async (request, reply) => {
 			const { sessionId } = request.cookies
 
-			const user = await knex('users')
-				.where('session_id', sessionId)
-				.select()
+			const user = await knex('users').where('session_id', sessionId).select().first()
 
-			return { user }
+			if (!user) {
+				return reply.status(404).send('Usuario não encontrado')
+			}
+
+			const totalMeals = await knex('meals').where('session_id', sessionId).count()
+			const totalMealsOnDiet = await knex('meals')
+				.where('session_id', sessionId)
+				.where('on_diet', true)
+				.count()
+			const totalMealsOffDiet = await knex('meals')
+				.where('session_id', sessionId)
+				.where('on_diet', false)
+				.count()
+
+			return {
+				user,
+				totalMeals: totalMeals[0]['count(*)'],
+				totalMealsOnDiet: totalMealsOnDiet[0]['count(*)'],
+				totalMealsOffDiet: totalMealsOffDiet[0]['count(*)'],
+			}
 		},
 	)
 
